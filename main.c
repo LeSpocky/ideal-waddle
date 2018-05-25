@@ -19,30 +19,67 @@
 
 #define MAXPENDING	100				/*	maximum outstanding connection requests	*/
 
-static void print_sock_addr( const struct sockaddr *addr, FILE *stream );
+static int accept_tcp_connect( int server_sock );
 
-static int setup_tcp_server_socket( void );
+static void handle_tcp_client( int client_sock );
 
-int main( int argc, char *argv[] )
+static void print_sock_addr( FILE *stream, const struct sockaddr *addr );
+
+static int setup_tcp_server_sock( void );
+
+int main( void )
 {
-	int server_socket;
+	int client_sock, server_sock;
 
-	if ( (server_socket = setup_tcp_server_socket()) < 0 )
+	if ( (server_sock = setup_tcp_server_sock()) < 0 )
 	{
 		return EXIT_FAILURE;
 	}
 
 	while ( 1 )
 	{
+		client_sock = accept_tcp_connect( server_sock );
 
+		if ( client_sock < 0 ) continue;
+
+		handle_tcp_client( client_sock );
+
+		close( client_sock );
 	}
 
-	close( server_socket );
+	close( server_sock );
 
 	return EXIT_SUCCESS;
 }
 
-void print_sock_addr( const struct sockaddr *addr, FILE *stream )
+int accept_tcp_connect( int server_sock )
+{
+	int client_sock;
+	struct sockaddr_storage client_addr;
+	socklen_t client_addr_len = sizeof(client_addr);
+
+	client_sock = accept( server_sock, (struct sockaddr *) &client_addr,
+			&client_addr_len );
+
+	if ( client_sock < 0 )
+	{
+		fprintf( stderr, "accept() failed: %s\n", strerror( errno ) );
+		return client_sock;
+	}
+
+	fprintf( stdout, "Accepted connection from " );
+	print_sock_addr( stdout, (struct sockaddr *) &client_addr );
+	fprintf( stdout, " ...\n" );
+
+	return client_sock;
+}
+
+void handle_tcp_client( int client_sock )
+{
+	printf( "Handling sock fd %i ...\n", client_sock );
+}
+
+void print_sock_addr( FILE *stream, const struct sockaddr *addr )
 {
 	char		buf[INET6_ADDRSTRLEN];
 	void		*naddr;
@@ -77,7 +114,7 @@ void print_sock_addr( const struct sockaddr *addr, FILE *stream )
 	}
 }
 
-int setup_tcp_server_socket( void )
+int setup_tcp_server_sock( void )
 {
 	int retval, server_socket;
 	struct addrinfo *addr, hints, *result;
@@ -114,13 +151,13 @@ int setup_tcp_server_socket( void )
 		{
 			/*	Successful bind and listen!	*/
 			fprintf( stdout, "Bound to and listening on " );
-			print_sock_addr( addr->ai_addr, stdout );
+			print_sock_addr( stdout, addr->ai_addr );
 			fprintf( stdout, "\n" );
 			break;
 		}
 
 		fprintf( stderr, "Could not bind to/listen on " );
-		print_sock_addr( addr->ai_addr, stderr );
+		print_sock_addr( stderr, addr->ai_addr );
 		fprintf( stderr, ": %s\n", strerror( errno ) );
 
 		close( server_socket );
