@@ -17,6 +17,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define BUFSIZE		1500
 #define MAXPENDING	100				/*	maximum outstanding connection requests	*/
 
 static int accept_tcp_connect( int server_sock );
@@ -76,7 +77,49 @@ int accept_tcp_connect( int server_sock )
 
 void handle_tcp_client( int client_sock )
 {
-	printf( "Handling sock fd %i ...\n", client_sock );
+	char buf[BUFSIZE];
+	ssize_t bytes_received, bytes_sent;
+
+	printf( "Handling client socket fd %i ...\n", client_sock );
+
+	while ( 1 )
+	{
+		bytes_received = recv( client_sock, buf, sizeof(buf), 0 );
+
+		if ( bytes_received < 0 )
+		{
+			fprintf( stderr, "Error receiving on fd %i: %s\n",
+					client_sock, strerror( errno ) );
+			break;
+		}
+
+		if ( bytes_received > 0 )
+		{
+			/*	Sent things back!	*/
+			bytes_sent = send( client_sock, buf, bytes_received, 0 );
+
+			if ( bytes_sent < 0 )
+			{
+				fprintf( stderr, "Error sending on fd %i: %s\n",
+						client_sock, strerror( errno ) );
+				break;
+			}
+
+			if ( bytes_sent != bytes_received )
+			{
+				fprintf( stderr,
+						"On fd %i sent %zi bytes, but received %zi!\n",
+						client_sock, bytes_sent, bytes_received );
+			}
+		}
+		else	/*	== 0	*/
+		{
+			printf( "Peer shutdown on fd %i\n", client_sock );
+			break;
+		}
+	}
+
+	close( client_sock );
 }
 
 void print_sock_addr( FILE *stream, const struct sockaddr *addr )
