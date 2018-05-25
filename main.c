@@ -1,3 +1,10 @@
+/*
+ *	Copyright 2018 Alexander Dahl
+ *
+ *	SPDX-License-Identifier: GPL-3.0-or-later
+ *	License-Filename: LICENSE
+ */
+
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
