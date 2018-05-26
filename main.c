@@ -92,14 +92,13 @@ int accept_tcp_connect( int server_sock )
 
 void handle_tcp_client( int client_sock )
 {
-	char buf[BUFSIZE];
-	ssize_t bytes_received, bytes_sent;
-
 	printf( "Handling client socket fd %i ...\n", client_sock );
 
 	while ( 1 )
 	{
-		bytes_received = recv( client_sock, buf, sizeof(buf), 0 );
+		char buf[BUFSIZE];
+
+		ssize_t bytes_received = recv( client_sock, buf, sizeof(buf), 0 );
 
 		if ( bytes_received < 0 )
 		{
@@ -111,7 +110,7 @@ void handle_tcp_client( int client_sock )
 		if ( bytes_received > 0 )
 		{
 			/*	Sent things back!	*/
-			bytes_sent = send( client_sock, buf, bytes_received, 0 );
+			ssize_t bytes_sent = send( client_sock, buf, bytes_received, 0 );
 
 			if ( bytes_sent < 0 )
 			{

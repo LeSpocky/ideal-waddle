@@ -12,3 +12,6 @@ add_executable(${PROJECT_NAME}
     main.c
     list.c
 )
+set_target_properties(${PROJECT_NAME} PROPERTIES
+	C_STANDARD	99
+)

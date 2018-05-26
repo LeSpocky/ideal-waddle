@@ -24,11 +24,9 @@ struct list* list_create( void )
 
 void list_destroy( struct list *list )
 {
-	struct node *node_;
-
 	assert( list );
 
-	for ( node_ = list->first; node_; node_ = node_->next )
+	for ( struct node *node_ = list->first; node_; node_ = node_->next )
 	{
 		if ( node_->prev ) free( node_->prev );
 	}
@@ -77,7 +75,6 @@ int list_pop( struct list *list )
 int list_remove( struct list *list, struct node *node_ )
 {
 	int result;
-	struct node *after, *before;
 
 	assert( list );
 	assert( node_ );
@@ -104,8 +101,8 @@ int list_remove( struct list *list, struct node *node_ )
 	}
 	else
 	{
-		after = node_->next;
-		before = node_->prev;
+		struct node *after = node_->next;
+		struct node *before = node_->prev;
 		after->prev = before;
 		before->next = after;
 	}
