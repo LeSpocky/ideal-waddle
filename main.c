@@ -17,6 +17,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "list.h"
+
 #define BUFSIZE		1500
 #define MAXPENDING	100				/*	maximum outstanding connection requests	*/
 
@@ -31,12 +33,23 @@ static int setup_tcp_server_sock( void );
 int main( void )
 {
 	int client_sock, server_sock;
+	struct list *list_;
 
+	/*	create list	*/
+	list_ = list_create();
+	if ( list_ == NULL )
+	{
+		(void) fprintf( stderr, "Failed to create list!\n" );
+		return EXIT_FAILURE;
+	}
+
+	/*	setup server socket	*/
 	if ( (server_sock = setup_tcp_server_sock()) < 0 )
 	{
 		return EXIT_FAILURE;
 	}
 
+	/*	enter endless loop	*/
 	while ( 1 )
 	{
 		client_sock = accept_tcp_connect( server_sock );
@@ -49,6 +62,8 @@ int main( void )
 	}
 
 	close( server_sock );
+
+	list_destroy( list_ );
 
 	return EXIT_SUCCESS;
 }
