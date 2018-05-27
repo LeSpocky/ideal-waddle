@@ -13,14 +13,20 @@
 
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "list.h"
-
 #define BUFSIZE		1500
 #define MAXPENDING	100				/*	maximum outstanding connection requests	*/
+
+/**
+ *	Structure to pass to client thread as argument.
+ */
+struct thread_args {
+	int client_sock;
+};
 
 static int accept_tcp_connect( int server_sock );
 
@@ -30,18 +36,11 @@ static void print_sock_addr( FILE *stream, const struct sockaddr *addr );
 
 static int setup_tcp_server_sock( void );
 
+static void *thread_client( void *arg );
+
 int main( void )
 {
-	int client_sock, server_sock;
-	struct list *list_;
-
-	/*	create list	*/
-	list_ = list_create();
-	if ( list_ == NULL )
-	{
-		(void) fprintf( stderr, "Failed to create list!\n" );
-		return EXIT_FAILURE;
-	}
+	int server_sock;
 
 	/*	setup server socket	*/
 	if ( (server_sock = setup_tcp_server_sock()) < 0 )
@@ -52,18 +51,33 @@ int main( void )
 	/*	enter endless loop	*/
 	while ( 1 )
 	{
-		client_sock = accept_tcp_connect( server_sock );
-
+		int client_sock = accept_tcp_connect( server_sock );
 		if ( client_sock < 0 ) continue;
 
-		handle_tcp_client( client_sock );
+		struct thread_args *ta =
+				(struct thread_args *) malloc( sizeof(struct thread_args) );
+		if ( ta == NULL )
+		{
+			fprintf( stderr, "malloc() failed!\n" );
+			break;
+		}
 
-		close( client_sock );
+		ta->client_sock = client_sock;
+
+		pthread_t tid;
+		int retval = pthread_create( &tid, NULL, thread_client, ta );
+		if ( retval != 0 )
+		{
+			fprintf( stderr, "pthread_create() failed: %s\n",
+					strerror(retval) );
+			break;
+		}
+
+		printf( "thread (%lu) handling client socket %i ...\n",
+				tid, client_sock );
 	}
 
 	close( server_sock );
-
-	list_destroy( list_ );
 
 	return EXIT_SUCCESS;
 }
@@ -229,4 +243,22 @@ int setup_tcp_server_sock( void )
 	freeaddrinfo( result );
 
 	return server_socket;
+}
+
+void *thread_client( void *arg )
+{
+	char tn[16];
+	pthread_t tid = pthread_self();
+
+	pthread_detach( tid );
+
+	int client_sock = ((struct thread_args *) arg)->client_sock;
+	free( arg );
+
+	snprintf( tn, sizeof(tn), "client fd %i", client_sock );
+	(void) pthread_setname_np( tid, tn );
+
+	handle_tcp_client( client_sock );
+
+	return NULL;
 }
