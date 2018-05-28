@@ -21,11 +21,14 @@
 #define BUFSIZE		1500
 #define MAXPENDING	100				/*	maximum outstanding connection requests	*/
 
+#define CLIENT_THREAD_KEEPALIVE	(1 << 0)
+
 /**
  *	Structure to pass to client thread as argument.
  */
 struct thread_args {
-	int client_sock;
+	int	client_sock;
+	int	flags;
 };
 
 static int accept_tcp_connect( int server_sock );
@@ -34,13 +37,33 @@ static void handle_tcp_client( int client_sock );
 
 static void print_sock_addr( FILE *stream, const struct sockaddr *addr );
 
+static void print_usage( FILE * stream, const char *appname );
+
 static int setup_tcp_server_sock( void );
 
 static void *thread_client( void *arg );
 
-int main( void )
+int main( int argc, char *argv[] )
 {
-	int server_sock;
+	int client_flags = 0, opt, server_sock;
+
+	while ( (opt = getopt( argc, argv, "hk" )) != -1 )
+	{
+		switch ( opt )
+		{
+			case 'h':
+				print_usage( stdout, argv[0] );
+				return EXIT_SUCCESS;
+				break;
+			case 'k':
+				client_flags |= CLIENT_THREAD_KEEPALIVE;
+				break;
+			default:
+				print_usage( stderr, argv[0] );
+				return EXIT_FAILURE;
+				break;
+		}
+	}
 
 	/*	setup server socket	*/
 	if ( (server_sock = setup_tcp_server_sock()) < 0 )
@@ -183,6 +206,11 @@ void print_sock_addr( FILE *stream, const struct sockaddr *addr )
 	{
 		fprintf( stream, "[invalid address]" );
 	}
+}
+
+void print_usage( FILE * stream, const char *appname )
+{
+	fprintf( stream, "Usage: %s [-k]\n", appname );
 }
 
 int setup_tcp_server_sock( void )
