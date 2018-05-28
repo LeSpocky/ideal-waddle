@@ -86,6 +86,7 @@ int main( int argc, char *argv[] )
 		}
 
 		ta->client_sock = client_sock;
+		ta->flags = client_flags;
 
 		pthread_t tid;
 		int retval = pthread_create( &tid, NULL, thread_client, ta );
@@ -116,7 +117,7 @@ int accept_tcp_connect( int server_sock )
 
 	if ( client_sock < 0 )
 	{
-		fprintf( stderr, "accept() failed: %s\n", strerror( errno ) );
+		perror( "accept()" );
 		return client_sock;
 	}
 
@@ -281,11 +282,33 @@ void *thread_client( void *arg )
 	pthread_detach( tid );
 
 	int client_sock = ((struct thread_args *) arg)->client_sock;
+	int client_flags = ((struct thread_args *) arg)->flags;
 	free( arg );
 
 	snprintf( tn, sizeof(tn), "client fd %i", client_sock );
 	(void) pthread_setname_np( tid, tn );
 
+	/*	set keepalive option on client sock before exchanging data	*/
+	int optval = (client_flags & CLIENT_THREAD_KEEPALIVE);
+	socklen_t optlen = sizeof(optval);
+	if ( setsockopt( client_sock, SOL_SOCKET, SO_KEEPALIVE,
+			&optval, optlen ) < 0 )
+	{
+		perror( "setsockopt()" );
+	}
+
+	if ( getsockopt( client_sock, SOL_SOCKET, SO_KEEPALIVE,
+			&optval, &optlen) < 0)
+	{
+		perror( "getsockopt()" );
+	}
+	else
+	{
+		printf( "SO_KEEPALIVE on socket %i is %s\n", client_sock,
+				(optval ? "ON" : "OFF") );
+	}
+
+	/*	do the data	*/
 	handle_tcp_client( client_sock );
 
 	return NULL;
