@@ -13,6 +13,8 @@
 
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -22,6 +24,9 @@
 #define MAXPENDING	100				/*	maximum outstanding connection requests	*/
 
 #define CLIENT_THREAD_KEEPALIVE	(1 << 0)
+#define CLIENT_TCP_KEEPCNT		3
+#define CLIENT_TCP_KEEPIDLE		10
+#define CLIENT_TCP_KEEPINTVL	5
 
 /**
  *	Structure to pass to client thread as argument.
@@ -306,6 +311,69 @@ void *thread_client( void *arg )
 	{
 		printf( "SO_KEEPALIVE on socket %i is %s\n", client_sock,
 				(optval ? "ON" : "OFF") );
+	}
+
+	/*
+	 *	»The maximum number of keepalive probes TCP should send before
+	 *	dropping the connection.«
+	 */
+	optval = CLIENT_TCP_KEEPCNT;
+	if ( setsockopt( client_sock, SOL_TCP, TCP_KEEPCNT,
+			&optval, optlen ) < 0 )
+	{
+		perror( "setsockopt()" );
+	}
+
+	if ( getsockopt( client_sock, SOL_TCP, TCP_KEEPCNT,
+			&optval, &optlen) < 0)
+	{
+		perror( "getsockopt()" );
+	}
+	else
+	{
+		printf( "TCP_KEEPCNT on socket %i is %i\n", client_sock, optval );
+	}
+
+	/*
+	 *	»The time (in seconds) the connection needs to remain idle
+	 *	before TCP starts sending keepalive probes, if the socket option
+	 *	SO_KEEPALIVE has been set on this socket.«
+	 */
+	optval = CLIENT_TCP_KEEPIDLE;
+	if ( setsockopt( client_sock, SOL_TCP, TCP_KEEPIDLE,
+			&optval, optlen ) < 0 )
+	{
+		perror( "setsockopt()" );
+	}
+
+	if ( getsockopt( client_sock, SOL_TCP, TCP_KEEPIDLE,
+			&optval, &optlen) < 0)
+	{
+		perror( "getsockopt()" );
+	}
+	else
+	{
+		printf( "TCP_KEEPIDLE on socket %i is %i\n", client_sock, optval );
+	}
+
+	/*
+	 *	»The time (in seconds) between individual keepalive probes.«
+	 */
+	optval = CLIENT_TCP_KEEPINTVL;
+	if ( setsockopt( client_sock, SOL_TCP, TCP_KEEPINTVL,
+			&optval, optlen ) < 0 )
+	{
+		perror( "setsockopt()" );
+	}
+
+	if ( getsockopt( client_sock, SOL_TCP, TCP_KEEPINTVL,
+			&optval, &optlen) < 0)
+	{
+		perror( "getsockopt()" );
+	}
+	else
+	{
+		printf( "TCP_KEEPINTVL on socket %i is %i\n", client_sock, optval );
 	}
 
 	/*	do the data	*/
