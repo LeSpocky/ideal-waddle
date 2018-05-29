@@ -8,7 +8,7 @@ show why TCP KEEPALIVE packets may be useful from the server side.
 
 ## Background
 
-[RFC1122 Section 4.2.3.6](https://tools.ietf.org/html/rfc1122#section-4.2.3.6) 
+[RFC1122 Section 4.2.3.6](https://tools.ietf.org/html/rfc1122#section-4.2.3.6)
 describes “TCP Keep-Alives” and says:
 
 > A TCP keep-alive mechanism should only be invoked in server
@@ -23,6 +23,10 @@ Note: you may not need this mechanism if your layer 5 to 7 protocol
 lets the server part send data every now and then, has its own keep
 alive packets or any other mechanism to detect those inactive
 connections.
+
+See: A 2009 blog post
+[Detection of Half-Open (Dropped) Connections](https://blog.stephencleary.com/2009/05/detection-of-half-open-dropped.html)
+has a list with advantages and disadvantages of this and other methods.
 
 ## Install
 
